@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0,r'C:\jianweidata\ocr\psenet')
+sys.path.insert(0,r'E:\psenet-MTWI\PSENET')
 import config
 import keras.backend as K
 import tensorflow as tf 

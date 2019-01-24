@@ -26,7 +26,7 @@ def resnet_v1_50_fn(input,include_top=False,weight=None):
     #    if isinstance(layer,keras.layers.normalization.BatchNormalization):
     #        layer.trainable = False
 
-    resnet.load_weights(r'C:\jianweidata\Unet-table\Unet_table\Unet_table\models\resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5')
+    resnet.load_weights(r'models\resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5')
 
     # get layers from block 1 2 3 4 5
     b5 = resnet.get_layer('activation_49').output

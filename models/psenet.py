@@ -90,6 +90,7 @@ def FC_SN(PN):
     P2 = PN[-1]
     t_tensor_shape = keras.backend.shape(P2)[1:3]
     t_int_shape = keras.backend.int_shape(P2)[1:3]
+
     for i in range(len(PN)-1):
         PN[i] = resize_image(t_tensor_shape,t_int_shape)(PN[i])
 
@@ -104,7 +105,8 @@ def FC_SN(PN):
 
     scale = 1
     if(config.ns == 2):
-        scale = 2
+        scale = 1
+
     new_shape = t_tensor_shape
     new_shape *= tf.constant(np.array([scale, scale], dtype='int32'))
     if t_int_shape[0] is None:

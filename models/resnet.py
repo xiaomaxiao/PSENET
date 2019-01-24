@@ -28,10 +28,10 @@ def resnet_v1_50_fn(input,include_top=False,weight=None):
 
     resnet.load_weights(r'C:\jianweidata\Unet-table\Unet_table\Unet_table\models\resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5')
 
-    # get layers from block 2 3 4 5
+    # get layers from block 1 2 3 4 5
     b5 = resnet.get_layer('activation_49').output
     b4 = resnet.get_layer('activation_37').output
     b3 = resnet.get_layer('activation_19').output
     b2 = resnet.get_layer('activation_7').output
     b1 = resnet.get_layer('activation_1').output
-    return [b5,b4,b3,b2]
+    return [b5,b4,b3,b2,b1]

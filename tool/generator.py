@@ -13,13 +13,14 @@ from tool.utils import BatchIndices
 
 class Generator():
     def __init__(self,dir,batch_size = 2 , istraining = True,
-                 num_classes = 2,mirror=True,reshape=(640,640)):
+                 num_classes = 2,mirror=True,scale=True,clip=True,reshape=(640,640)):
         self.dir = dir 
         self.lock = threading.Lock()
         self.batch_size = batch_size
         self.shuffle =  istraining
         self.num_classes = num_classes
         self.mirror = mirror
+        self.scale = scale
         self.reshape = reshape  #(h,w)
         self.imagelist,self.labellist = self.list_dir(self.dir)
         self.batch_idx = BatchIndices(self.imagelist.shape[0],self.batch_size,self.shuffle)
@@ -44,6 +45,9 @@ class Generator():
                 
         return np.array(image),np.array(npy)
 
+    def rand(self,a=0, b=1):
+        return np.random.rand()*(b-a) + a
+
     def reshape(self,img,label,shape):
         lreshape = (int(sshape[0]/config.ns),int(shape[1]/config.ns))
         lns = np.zeros((lreshape[0],lreshape[1],config.n))
@@ -51,6 +55,47 @@ class Generator():
             lns[:,:,c] =cv2.resize(lalbel[:,:,c],(lreshape[1],lreshape[0]),interpolation=cv2.INTER_NEAREST)
         img = cv2.resize(img,(self.reshape[1],self.reshape[0]),interpolation=cv2.INTER_AREA)
         return img,lns
+
+    def scale_image(self,img,label,scalex,scaley):
+        h,w = img.shape[0:2]
+        h = int(h*scaley)
+        w = int(w*scalex)
+        lns = np.zeros((h,w,config.n))
+        for c in range(config.n):
+           lns[:,:,c] =cv2.resize(lalbel[:,:,c],(w,h),interpolation=cv2.INTER_NEAREST)
+        img = cv2.resize(img,(w,h),interpolation=cv2.INTER_AREA)
+        return img,lns
+    
+    def clip_image(self,img,label,shape):
+        h,w = img.shape[0:2]
+        ih,iw = shape 
+
+        #img的短边要大于 shape的长边，不足的padding
+        dh = max(h,ih)
+        dw = max(w,iw)
+        newimg = np.ones((dh,dw,img.shape[2]))*128
+        newlabel = np.zeros((dh,dw,label.shape[2]))*128
+        ty = (dh - h )//2
+        tx = (dw - w)//2
+        newimg[ty:ty+h,tx:tx+w,:] = img
+        newlabel[ty//2:ty+h,tx:tx+w,:] = label
+        h,w = (dh,dw)
+
+        cx1,cy1,cx2,cy2=(0,0,0,0)
+        for i in range(1000):
+            cx1 = np.random.randint(0,w-iw)
+            cy1 = np.random.randint(0,h-ih)
+            cx2 = cx1 + iw 
+            cy2 = cy1 + ih 
+
+            #剪切到的文本面积过小则再随机个位置
+            l = newlabel[cy1:cy2,cx1:cx2,-1]
+            if(np.count_nonzero(l==1)>config.data_gen_clip_min_area):
+                break
+
+        img = newimg[cy1:cy2,cx1:cx2,:]
+        label = newlabel[cy1:cy2,cx1:cx2,:]
+        return img,label
 
 
     def __next__(self):
@@ -61,11 +106,16 @@ class Generator():
             for i,j in zip(self.labellist[idx],self.imagelist[idx]):
                 l = np.load(i).astype(np.uint8)
                 img = cv2.imread(j)
-
                 #随机缩放
+                if(self.scale):
+                    scale = self.rand(config.data_gen_min_scales,config.data_gen_max_scales)
+                    scalex = self.rand(scale-config.data_gen_itter_scales,scale+config.data_gen_itter_scales)
+                    scaley = self.rand(scale-config.data_gen_itter_scales,scale+config.data_gen_itter_scales)
+                    img,l = self.scale_image(img,l,scalex,scaley)
 
                 #随机剪切
-
+                if(self.clip):
+                    img,l = self.clip_image(img,l,self.reshape)
 
                 #reshape到训练尺寸
                 if(self.reshape):

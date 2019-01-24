@@ -18,3 +18,12 @@ MIWI_2018_TRAIN_LABEL_DIR = r'C:\jianweidata\document\mtwi_2018_train\train_labe
 MIWI_2018_TEST_LABEL_DIR = r'C:\jianweidata\document\mtwi_2018_train\test_label'
 
 label_to_id = {(255,255,255):0,(0,0,255):1}
+
+data_gen_min_scales = 0.5
+data_gen_max_scales = 2.0
+
+
+
+
+
+

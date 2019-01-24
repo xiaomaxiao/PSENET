@@ -44,6 +44,13 @@ class Generator():
                 
         return np.array(image),np.array(npy)
 
+    def reshape(self,img,label,shape):
+        lreshape = (int(sshape[0]/config.ns),int(shape[1]/config.ns))
+        lns = np.zeros((lreshape[0],lreshape[1],config.n))
+        for c in range(config.n):
+            lns[:,:,c] =cv2.resize(lalbel[:,:,c],(lreshape[1],lreshape[0]),interpolation=cv2.INTER_NEAREST)
+        img = cv2.resize(img,(self.reshape[1],self.reshape[0]),interpolation=cv2.INTER_AREA)
+        return img,lns
 
 
     def __next__(self):
@@ -54,14 +61,15 @@ class Generator():
             for i,j in zip(self.labellist[idx],self.imagelist[idx]):
                 l = np.load(i).astype(np.uint8)
                 img = cv2.imread(j)
-                if(self.reshape):
-                    lreshape = (int(self.reshape[0]/config.ns),int(self.reshape[1]/config.ns))
-                    lns = np.zeros((lreshape[0],lreshape[1],config.n))
-                    for c in range(config.n):
-                        lns[:,:,c] =cv2.resize(l[:,:,c],(lreshape[1],lreshape[0]),interpolation=cv2.INTER_NEAREST)
-                    l = lns
-                    img = cv2.resize(img,(self.reshape[1],self.reshape[0]),interpolation=cv2.INTER_AREA)
 
+                #随机缩放
+
+                #随机剪切
+
+
+                #reshape到训练尺寸
+                if(self.reshape):
+                    img,l = self.reshape(img,l,self.reshape)
                 images.append(img)
                 labels.append(l)
 

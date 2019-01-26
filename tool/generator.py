@@ -66,7 +66,15 @@ class Generator():
            lns[:,:,c] =cv2.resize(label[:,:,c],(w,h),interpolation=cv2.INTER_NEAREST)
         img = cv2.resize(img,(w,h),interpolation=cv2.INTER_AREA)
         return img,lns
-    
+
+    def trans_color_image(self,img):
+        '''
+        颜色通道转换
+        '''
+        img = img[:,:,::-1]
+        return img
+
+
     def clip_image(self,img,label,shape):
         h,w = img.shape[0:2]
         ih,iw = shape 
@@ -75,7 +83,7 @@ class Generator():
         dh = max(h,ih)
         dw = max(w,iw)
         newimg = np.ones((dh,dw,img.shape[2]))*128
-        newlabel = np.zeros((dh,dw,label.shape[2]))*128
+        newlabel = np.zeros((dh,dw,label.shape[2]))
         ty = (dh - h )//2
         tx = (dw - w)//2
         newimg[ty:ty+h,tx:tx+w,:] = img
@@ -146,19 +154,21 @@ class Generator():
             traceback.print_exc()
             self.__next__()
 
-def test():
-    gen = Generator(config.MIWI_2018_TEST_LABEL_DIR)
+##def test():
+#gen = Generator(config.MIWI_2018_TEST_LABEL_DIR)
 
-    images,labels = next(gen)
-    import matplotlib.pyplot as plt 
+#images,labels = next(gen)
+#print('images.shape',images.shape)
+#print('labels.shape',labels.shape)
+#import matplotlib.pyplot as plt 
 
-    plt.imshow(images[1][:,:,::-1])
+#plt.imshow(images[1][:,:,::-1])
 
-    plt.imshow(labels[0][:,:,5])
+#plt.imshow(labels[0][:,:,5])
 
 
-    z0 = np.count_nonzero(labels==0)
-    z1 = np.count_nonzero(labels==1)
-    print(z0+z1 == 2 * 320 * 320 * 6)
+#z0 = np.count_nonzero(labels==0)
+#z1 = np.count_nonzero(labels==1)
+#print(z0+z1 == 2 * 320 * 320 * 6)
 
 #test()

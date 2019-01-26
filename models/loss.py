@@ -34,7 +34,7 @@ def build_loss(y_true,y_pred):
 
     #ignore the pixels of non-text region 
     #in the segmentation result Sn to avoid a certain redundancy.
-    W = y_pred_Lc >= 0.5
+    W = y_pred_Lc > 0.5
     pos_mask = tf.cast(y_true_Lc,tf.bool)
     W =  tf.logical_or(pos_mask, W)
     W = tf.cast(W,tf.float32)

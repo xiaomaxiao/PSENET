@@ -124,8 +124,9 @@ def FC_SN(PN):
     return SN
 
 
-def psenet(input_tensor):
-    blocks = resnet_v1_50_fn(input_tensor)
+def psenet(input_tensor,backbone = 'resnet50'):
+    if backbone=='resnet50':
+        blocks = resnet_v1_50_fn(input_tensor)
     PN = FPN(blocks)
     SN = FC_SN(PN)
     return SN

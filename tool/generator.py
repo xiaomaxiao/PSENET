@@ -13,7 +13,8 @@ from tool.utils import BatchIndices
 
 
 class Generator():
-    def __init__(self,dir,batch_size = 2 , istraining = True,num_classes = 2,mirror=True,scale=True,clip=True,reshape=(640,640)):
+    def __init__(self,dir,batch_size = 2 , istraining = True,num_classes = 2,
+                 trans_color = True,mirror=False,scale=True,clip=True,reshape=(640,640)):
         self.dir = dir 
         self.lock = threading.Lock()
         self.batch_size = batch_size
@@ -23,6 +24,7 @@ class Generator():
         self.scale = scale
         self.reshape = reshape  #(h,w)
         self.clip = clip
+        self.trans_color = trans_color
         self.imagelist,self.labellist = self.list_dir(self.dir)
         self.batch_idx = BatchIndices(self.imagelist.shape[0],self.batch_size,self.shuffle)
     def num_classes(self):
@@ -58,9 +60,16 @@ class Generator():
         return img,lns
 
     def scale_image(self,img,label,scalex,scaley):
+        '''
+        缩放并保证短边最少是640
+        '''
         h,w = img.shape[0:2]
         h = int(h*scaley)
         w = int(w*scalex)
+
+        h = max(h,self.reshape[0])
+        w = max(w,self.reshape[1])
+
         lns = np.zeros((h,w,config.n))
         for c in range(config.n):
            lns[:,:,c] =cv2.resize(label[:,:,c],(w,h),interpolation=cv2.INTER_NEAREST)
@@ -125,6 +134,9 @@ class Generator():
                 #随机剪切
                 if(self.clip):
                     img,l = self.clip_image(img,l,self.reshape)
+                
+                if(self.trans_color and np.random.randint(0,10)>5):
+                    img = self.trans_color_image(img)
 
                 #reshape到训练尺寸
                 if(self.reshape):
@@ -136,6 +148,8 @@ class Generator():
             labels = np.array(labels)
         
             seed = np.random.randint(0,100)
+
+
             if(self.mirror and  seed >90):
                 images = images[:,::-1,::-1,:]
                 labels = labels[:,::-1,::-1,:]

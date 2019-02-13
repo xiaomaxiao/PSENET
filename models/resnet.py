@@ -2,7 +2,7 @@
 
 
 import keras 
-from keras.applications import ResNet50,ResNet101
+from keras.applications import ResNet50
 from keras.layers import Lambda
 import tensorflow as tf 
 import numpy as np 

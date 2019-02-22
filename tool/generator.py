@@ -135,9 +135,10 @@ class Generator():
                 if(self.clip):
                     img,l = self.clip_image(img,l,self.reshape)
                 
+                #颜色通道转换
                 if(self.trans_color and np.random.randint(0,10)>5):
                     img = self.trans_color_image(img)
-
+                         
                 #reshape到训练尺寸
                 if(self.reshape):
                     img,l = self.reshape_image(img,l,self.reshape)

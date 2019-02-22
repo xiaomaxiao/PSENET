@@ -19,7 +19,7 @@ class resize_image(keras.layers.Layer):
     
     def call(self,input_tensor,**kwargs):
         print(self.target_int_shape)
-        return tf.image.resize_images(input_tensor,(self.target_tensor_shape[0],self.target_tensor_shape[1]),method = tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        return tf.image.resize_images(input_tensor,(self.target_tensor_shape[0],self.target_tensor_shape[1]),method = tf.image.ResizeMethod.BILINEAR)
 
     def compute_output_shape(self,input_shape):       
         return (input_shape[0],) + (self.target_int_shape[0],self.target_int_shape[1]) + (input_shape[-1],)

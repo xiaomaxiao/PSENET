@@ -37,7 +37,7 @@ def cal_di(pnt,m,n):
 
     return di_n
 
-
+ 
 def shrink_polygon(pnt,di_n):
     pco = pyclipper.PyclipperOffset()
     pco.AddPath(pnt, pyclipper.JT_ROUND, pyclipper.ET_CLOSEDPOLYGON)

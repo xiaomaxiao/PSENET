@@ -128,7 +128,7 @@ def fit_minarearectange(num_label,labelImage):
         rect = cv2.boxPoints(rect)
         rect = np.int0(rect)
         area = cv2.contourArea(rect)
-        if(area<10):
+        if(area<50):
             continue
         rects.append(rect)
     return rects

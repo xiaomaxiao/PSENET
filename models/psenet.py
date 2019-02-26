@@ -19,7 +19,7 @@ class resize_image(keras.layers.Layer):
     
     def call(self,input_tensor,**kwargs):
         print(self.target_int_shape)
-        return tf.image.resize_images(input_tensor,(self.target_tensor_shape[0],self.target_tensor_shape[1]),method = tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        return tf.image.resize_images(input_tensor,(self.target_tensor_shape[0],self.target_tensor_shape[1]),method = tf.image.ResizeMethod.BILINEAR)
 
     def compute_output_shape(self,input_shape):       
         return (input_shape[0],) + (self.target_int_shape[0],self.target_int_shape[1]) + (input_shape[-1],)
@@ -90,6 +90,7 @@ def FC_SN(PN):
     P2 = PN[-1]
     t_tensor_shape = keras.backend.shape(P2)[1:3]
     t_int_shape = keras.backend.int_shape(P2)[1:3]
+
     for i in range(len(PN)-1):
         PN[i] = resize_image(t_tensor_shape,t_int_shape)(PN[i])
 
@@ -104,7 +105,8 @@ def FC_SN(PN):
 
     scale = 1
     if(config.ns == 2):
-        scale = 2
+        scale = 1
+
     new_shape = t_tensor_shape
     new_shape *= tf.constant(np.array([scale, scale], dtype='int32'))
     if t_int_shape[0] is None:
@@ -122,8 +124,9 @@ def FC_SN(PN):
     return SN
 
 
-def psenet(input_tensor):
-    blocks = resnet_v1_50_fn(input_tensor)
+def psenet(input_tensor,backbone = 'resnet50'):
+    if backbone=='resnet50':
+        blocks = resnet_v1_50_fn(input_tensor)
     PN = FPN(blocks)
     SN = FC_SN(PN)
     return SN

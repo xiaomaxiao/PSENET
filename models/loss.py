@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0,r'C:\jianweidata\ocr\psenet')
+sys.path.insert(0,r'E:\psenet-MTWI\PSENET')
 import config
 import keras.backend as K
 import tensorflow as tf 
@@ -34,7 +34,7 @@ def build_loss(y_true,y_pred):
 
     #ignore the pixels of non-text region 
     #in the segmentation result Sn to avoid a certain redundancy.
-    W = y_pred_Lc >= 0.5
+    W = y_pred_Lc > 0.5
     pos_mask = tf.cast(y_true_Lc,tf.bool)
     W =  tf.logical_or(pos_mask, W)
     W = tf.cast(W,tf.float32)

@@ -6237,7 +6237,12 @@
     <Compile Include="models\__init__.py" />
     <Compile Include="tool\generator.py" />
     <Compile Include="tool\gen_dataset.py" />
+    <Compile Include="tool\locality_aware_nms.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="tool\MTWI_2018.py" />
+    <Compile Include="tool\rrc_evaluation_funcs.py" />
+    <Compile Include="tool\script.py" />
     <Compile Include="tool\utils.py" />
     <Compile Include="tool\__init__.py" />
   </ItemGroup>

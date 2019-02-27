@@ -56,6 +56,8 @@ def upsample_conv(input_tensor,concat_tensor,filters,type='resize',kernel_size=3
         output_image = resize_image(t_tensor_shape,t_int_shape)(input_tensor)
     else:
         raise ValueError('upsample_conv type not in [resize,...]')
+    
+    #todo conv again?
 
     #concat two layers
     output_image = Concatenate(axis=3)([output_image,concat_tensor])

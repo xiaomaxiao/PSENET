@@ -90,9 +90,9 @@ def ohem_single(s_Lc):
     return tf.cond(n_pos>0,has_pos,no_pos)
 
 def dice_loss(y_true,y_pred,smooth = 1.0):
-    intersection = K.sum(y_true * y_pred)
+    intersection = K.sum(y_true * y_pred,axis=(1,2,3))
     #intersection = tf.print(intersection,[intersection],'intersection:')
-    return  (2.0 * intersection + smooth ) / (K.sum(y_true) + K.sum(y_pred) + smooth)
+    return  K.mean((2.0 * intersection + smooth ) / (K.sum(y_true,axis=(1,2,3)) + K.sum(y_pred,axis=(1,2,3)) + smooth))
 
 
 

@@ -4,7 +4,7 @@
 import tensorflow as tf 
 import keras
 from keras.layers import Conv2D , ReLU , BatchNormalization , Input
-from keras.layers import Concatenate,Activation,Reshape,Lambda,UpSampling2D
+from keras.layers import Concatenate,Activation,Reshape,Lambda,UpSampling2D,Add
 from keras.models import Model
 from keras import regularizers
 from models.resnet import resnet_v1_50_fn 
@@ -61,6 +61,7 @@ def upsample_conv(input_tensor,concat_tensor,filters,type='resize',kernel_size=3
 
     #concat two layers
     output_image = Concatenate(axis=3)([output_image,concat_tensor])
+    #output_image =Add()([output_image,concat_tensor])
 
     output_image = conv_bn_relu(output_image,filters)
 

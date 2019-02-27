@@ -20,7 +20,7 @@ def resnet_v1_50_fn(input,include_top=False,weight=None):
     input = Lambda(mean_substraction,output_shape=target_shape[1:4])(input) 
 
     resnet = ResNet50(input_tensor=input,include_top=include_top , weights =weight)
-
+    
     ##set bn layer trainable = False
     #for layer in resnet.layers:
     #    if isinstance(layer,keras.layers.normalization.BatchNormalization):

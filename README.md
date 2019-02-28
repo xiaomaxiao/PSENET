@@ -9,6 +9,6 @@ For more detials , please see the the original paper : [Shape Robust Text Detect
 | - | - | - | - |
 | PSENet-2s-resnet50 | 72.2 | 68.7 | 0.704 |
 
-<div align="center">
-  <img src="imgs/mtwi.png">
-</div>
+![](imgs/mtwi.png)
+
+

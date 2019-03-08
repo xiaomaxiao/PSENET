@@ -9,6 +9,7 @@ https://www.kaggle.com/shaojiaxin/u-net-with-simple-resnet-blocks-v2-new-loss
 
 from keras import backend as K
 import numpy as np
+import config 
 
 def iou(y_true,y_pred,label:int):
     """
@@ -21,11 +22,14 @@ def iou(y_true,y_pred,label:int):
     y_pred = y_pred > 0.5
     y_pred = K.cast(y_pred,K.floatx())
     y_pred = K.cast(K.equal(y_pred,label),K.floatx())
+    if(config.metric_iou_batch):
+        intersecion = K.sum(y_true * y_pred)
+        union = K.sum(y_true) + K.sum(y_pred) - intersecion
+    else:
+        intersecion = K.sum(y_true * y_pred,axis=(1,2,3))
+        union = K.sum(y_true,axis=(1,2,3)) + K.sum(y_pred,axis=(1,2,3)) - intersecion
 
-    intersecion = K.sum(y_true * y_pred)
-    union = K.sum(y_true) + K.sum(y_pred) - intersecion
-
-    return K.switch(K.equal(union,0),1.0,intersecion/union)
+    return K.mean((intersecion+1e-5)/(union+1e-5))
 
 
 def build_iou(label:int,name:str=None):

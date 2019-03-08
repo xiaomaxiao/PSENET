@@ -27,5 +27,10 @@ data_gen_itter_scales = 0.3
 data_gen_clip_min_area = 20*100
 
 
+#dice loss
+batch_loss = True
+
+#metric iou 
+metric_iou_batch = True
 
 

@@ -6228,9 +6228,6 @@
   <ItemGroup>
     <Compile Include="config.py" />
     <Compile Include="models\loss.py" />
-    <Compile Include="models\map.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="models\metrics.py" />
     <Compile Include="models\psenet.py" />
     <Compile Include="models\resnet.py" />

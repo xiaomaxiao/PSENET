@@ -8,7 +8,7 @@ For more detials , please see the the original paper : [Shape Robust Text Detect
 <center class='half'>
     <img src="imgs/res1.png" width='400'> <img src="imgs/res2.png" width='400'>
     <img src="imgs/res3.png" width='400'> <img src="imgs/res4.png" width='400'>
-    <img src="imgs/res5.png" width='400'>
+    <img src="imgs/sfz.png" width='400'> <img src="imgs/jsz.jpg" width='400'>
 </center>
 
 ### PSENET for ICPR MTWI 2018 Challenge 2 Text detection.

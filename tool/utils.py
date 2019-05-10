@@ -108,13 +108,21 @@ def scale_expand_kernel(S1,S2):
        
     return S1
 
-def scale_expand_kernels(kernels):
+def filter_label_by_area(labelimge,num_label,area=5):
+    for i in range(1,num_label+1):
+        if(np.count_nonzero(labelimge==i)<=area):
+            labelimge[labelimge==i] ==0
+    return labelimge
+
+def scale_expand_kernels(kernels,filter=False):
     '''
     args:
         kernels : S(0,1,2,..n) scale kernels , Sn is the largest kernel
     '''
     S = kernels[0]
     num_label,labelimage = cv2.connectedComponents(S.astype('uint8'))
+    if(filter==True):
+        labelimage = filter_label_by_area(labelimage,num_label)
     for Si in kernels[1:]:
         labelimage = scale_expand_kernel(labelimage,Si)
     return num_label,labelimage   
@@ -153,3 +161,92 @@ def fit_boundingRect(num_label,labelImage):
         rect = np.array([[x,y],[x+w,y],[x+w,y+h],[x,y+h]])
         rects.append(rect)
     return rects
+
+def fit_boundingRect_2(num_label,labelImage):
+    rects= []
+    for label in range(1,num_label+1):
+        points = np.array(np.where(labelImage == label)[::-1]).T
+        x,y,w,h = cv2.boundingRect(points)
+        rect = np.array([x,y,x+w,y+h])
+        rects.append(rect)
+    return rects
+
+
+
+class text_porposcal:
+    def __init__(self,rects,imgw,max_dist =50 , threshold_overlap_v = 0.5):
+        self.rects = np.array(rects) 
+        self.imgw = imgw
+        self.max_dist = max_dist 
+        self.threshold_overlap_v = threshold_overlap_v
+        self.graph = np.zeros((self.rects.shape[0],self.rects.shape[0]))
+        self.r_index = [[] for _ in range(imgw)]
+        for index , rect in enumerate(rects):
+            self.r_index[int(rect[0])].append(index)
+
+    def get_sucession(self,index):
+        rect = self.rects[index]
+        for left in range(rect[0]+1,min(self.imgw-1,rect[2]+self.max_dist)):
+            for idx in self.r_index[left]:
+                if(self.meet_v_iou(index,idx) > self.threshold_overlap_v):
+                    return idx 
+        return -1
+
+    def meet_v_iou(self,index1,index2):
+        '''
+
+        '''
+        height1 = self.rects[index1][3] - self.rects[index1][1]
+        height2 = self.rects[index2][3] - self.rects[index2][1]
+        y0 = max(self.rects[index1][1],self.rects[index2][1])
+        y1 = min(self.rects[index1][3],self.rects[index2][3])
+        
+        overlap_v = max(0,y1- y0)/max(height1,height2)
+        return overlap_v
+
+    def sub_graphs_connected(self):
+        sub_graphs=[]
+        for index in range(self.graph.shape[0]):
+            if not self.graph[:, index].any() and self.graph[index, :].any():
+                v=index
+                sub_graphs.append([v])
+                while self.graph[v, :].any():
+                    v=np.where(self.graph[v, :])[0][0]
+                    sub_graphs[-1].append(v)
+        return sub_graphs
+
+    def fit_line(self,text_boxes):
+        '''
+        先用所有text_boxes的最大外包点做，后期可以用线拟合试试
+        '''
+        x1 = np.min(text_boxes[:,0])
+        y1 = np.min(text_boxes[:,1])
+        x2 = np.max(text_boxes[:,2])
+        y2 = np.max(text_boxes[:,3])
+        return [x1,y1,x2,y2]
+
+
+
+    def get_text_line(self):
+        for idx ,_ in enumerate(self.rects):
+            sucession = self.get_sucession(idx)
+            if(sucession>0):
+                self.graph[idx][sucession] = 1 
+                
+        sub_graphs = self.sub_graphs_connected()
+
+        #独立未合并的框
+        set_element = set([y for x in sub_graphs for y in x])
+        for idx,_ in enumerate(self.rects):
+            if(idx not in set_element):
+                sub_graphs.append([idx])
+        
+        text_boxes = []
+        for sub_graph in sub_graphs:
+            tb = self.rects[list(sub_graph)]
+            tb = self.fit_line(tb)
+            text_boxes.append(tb)
+
+
+        return np.array(text_boxes)
+

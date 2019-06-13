@@ -1,4 +1,4 @@
-
+#coding = utf-8
 """
 https://www.kaggle.com/pestipeti/explanation-of-scoring-metric
 https://www.kaggle.com/shaojiaxin/u-net-with-simple-resnet-blocks-v2-new-loss

@@ -136,24 +136,6 @@ def psenet(input_tensor,backbone = 'resnet50'):
 
 
 
-#input  = Input((1184,800,3))
-#input  = Input((1184,800,3))
-#output = psenet(input)
-
-#model = Model(input,output)
-
-#model.summary()
-
-#import time
-#import numpy as np 
-#img = np.random.randn(1,1184,800,3)
-#for i in range(10):
-#    t0  = time.time()
-   
-#    model.predict(img)
-    
-#    print(time.time()-t0)
-
 
 
 

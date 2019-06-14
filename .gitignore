@@ -7,3 +7,8 @@
 .vs/psenet-MTWI/v15/.suo
 .vs/psenet-MTWI/v15/.suo
 *.hdft
+*.jpg
+*.png
+*.npy
+.ipynb_checkpoints/未命名-checkpoint.ipynb
+未命名.ipynb

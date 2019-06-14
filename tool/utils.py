@@ -6,7 +6,7 @@ import shutil
 import cv2
 import glob
 from copy import deepcopy
-from numba import autojit
+from numba import jit
 
 class BatchIndices():
     def __init__(self,total,batchsize,trainable=True):
@@ -74,9 +74,7 @@ def convert_id_to_label(id,label2id):
     return labelimage
  
 
-
-
-@autojit
+@jit
 def ufunc_4(S1,S2,TAG):
     #indices 四邻域 x-1 x+1 y-1 y+1，如果等于TAG 则赋值为label
     for h in range(1,S1.shape[0]-1):
@@ -136,10 +134,24 @@ def fit_minarearectange(num_label,labelImage):
         rect = cv2.boxPoints(rect)
         rect = np.int0(rect)
         area = cv2.contourArea(rect)
-        if(area<50):
+        if(area<10):
+            print('area:',area)
             continue
         rects.append(rect)
     return rects
+
+@jit(nopython=True)
+def fit_minarearectange_2(num_label,labelImage):
+    '''
+    最小外接矩形优化
+    '''
+    points = [[]] * num_label
+    for h in range(0,labelImage.shape[0]):
+        for w in range(0,labelImage.shape[1]):
+            value = labelImage[h][w]
+            if(value > 0):
+                points[value-1].append([w,h]) 
+    return 6
 
 def save_MTWI_2108_resault(filename,rects,scalex=1.0,scaley=1.0):
     with open(filename,'w',encoding='utf-8') as f:

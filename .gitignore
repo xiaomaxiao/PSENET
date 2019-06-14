@@ -12,3 +12,5 @@
 *.npy
 .ipynb_checkpoints/未命名-checkpoint.ipynb
 未命名.ipynb
+tf/checkpoint
+tf/

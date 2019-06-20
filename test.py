@@ -1,41 +1,48 @@
-import numpy as np 
 import cv2
-import keras 
-from models.psenet import psenet
-from tool.utils import ufunc_4 , scale_expand_kernels ,fit_minarearectange,fit_boundingRect_2,text_porposcal
+import numpy as np 
 
-inputs = keras.layers.Input(shape = (None,None,3))
-outputs = psenet(inputs)
-model = keras.models.Model(inputs,outputs)
-model.load_weights('resent50-190219_BLINEAR-iou8604.hdf5')
 
-MIN_LEN = 640 
-MAX_LEN = 1240
+sess = None
+with tf.Graph().as_default():
+    output_graph_def = tf.GraphDef()
+    with open('psenet.pb','rb') as f :
+        output_graph_def.ParseFromString(f.read())
+        _= tf.import_graph_def(output_graph_def,name='')
+        
+    sess =  tf.Session()
+    init = tf.global_variables_initializer()
+    sess.run(init)
+
+    ip = sess.graph.get_tensor_by_name("input_1:0")
+    op = sess.graph.get_tensor_by_name("activation_55/Sigmoid:0")
+
+
+
 
 def predict(images):
     h,w = images.shape[0:2]
     if(w<h):
-        if(h<MIN_LEN):
-            scale = 1.0 * MIN_LEN / h
-            w = w * scale 
-            h = MIN_LEN
+        if(w<MIN_LEN):
+            scale = 1.0 * MIN_LEN / w
+            h = h * scale 
+            w = MIN_LEN
         elif(h>MAX_LEN):
             scale = 1.0 * MAX_LEN / h 
-            w = w * scale 
+            w = w * scale if w * scale > MIN_LEN else MIN_LEN
             h = MAX_LEN
     elif(h<=w ):
-        if(w<MIN_LEN):
-            scale = 1.0 * MIN_LEN /w
-            h = scale * h 
-            w = MIN_LEN 
+        if(h<MIN_LEN):
+            scale = 1.0 * MIN_LEN / h
+            w = scale * w
+            h = MIN_LEN 
         elif(w>MAX_LEN):
-            scale = 1.0 * MAX_LEN /w
-            h = scale * w 
-            h = MAX_LEN
+            scale = 1.0 * MAX_LEN / w
+            h = scale * h if scale * h >  MIN_LEN else MIN_LEN
+            w = MAX_LEN
 
 
     w = int(w //32 * 32)
-    h = int(h//32 * 32)
+    h = int(h //32 * 32)
 
     scalex = images.shape[1] / w
     scaley = images.shape[0] / h

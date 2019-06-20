@@ -8,6 +8,7 @@ import glob
 from copy import deepcopy
 from numba import jit
 
+
 class BatchIndices():
     def __init__(self,total,batchsize,trainable=True):
         self.n = total
@@ -140,18 +141,6 @@ def fit_minarearectange(num_label,labelImage):
         rects.append(rect)
     return rects
 
-@jit(nopython=True)
-def fit_minarearectange_2(num_label,labelImage):
-    '''
-    最小外接矩形优化
-    '''
-    points = [[]] * num_label
-    for h in range(0,labelImage.shape[0]):
-        for w in range(0,labelImage.shape[1]):
-            value = labelImage[h][w]
-            if(value > 0):
-                points[value-1].append([w,h]) 
-    return 6
 
 def save_MTWI_2108_resault(filename,rects,scalex=1.0,scaley=1.0):
     with open(filename,'w',encoding='utf-8') as f:
@@ -183,6 +172,24 @@ def fit_boundingRect_2(num_label,labelImage):
         rects.append(rect)
     return rects
 
+def fit_boundingRect_cpp(num_label,labelimage):
+    rects = [] 
+    points = find_label_coord(labelimage,num_label)
+    for i in range(num_label):
+        pt = np.array(points[i]).reshape(-1,2)
+        x,y,w,h = cv2.boundingRect(pt)
+        rects.append(np.array([x,y,x+w,y+h]))
+    return rects
+
+def get_label_point(num_label,labelimage):
+    res = [[]] * num_label
+    h,w = labelimage.shape
+    for i in range(h):
+        for j in range(w):
+            value = labelimage[i][j]
+            if(value > 0 ):
+                res[value-1].append([j,i])
+    return res 
 
 
 class text_porposcal:

@@ -7,7 +7,7 @@ import cv2
 import glob
 from copy import deepcopy
 from numba import jit
-
+from tool.pse import find_label_coord,ufunc_4_cpp
 
 class BatchIndices():
     def __init__(self,total,batchsize,trainable=True):
@@ -99,7 +99,7 @@ def scale_expand_kernel(S1,S2):
     cond = True 
     while(cond):  
         before = np.count_nonzero(S1==0)
-        ufunc_4(S1,S2,TAG)  
+        ufunc_4_cpp(S1,S2,TAG)  
         S1[S2!=TAG] = S2[S2!=TAG]  
         after = np.count_nonzero(S1==0)
         if(before<=after):
@@ -181,15 +181,6 @@ def fit_boundingRect_cpp(num_label,labelimage):
         rects.append(np.array([x,y,x+w,y+h]))
     return rects
 
-def get_label_point(num_label,labelimage):
-    res = [[]] * num_label
-    h,w = labelimage.shape
-    for i in range(h):
-        for j in range(w):
-            value = labelimage[i][j]
-            if(value > 0 ):
-                res[value-1].append([j,i])
-    return res 
 
 
 class text_porposcal:
@@ -205,7 +196,10 @@ class text_porposcal:
 
     def get_sucession(self,index):
         rect = self.rects[index]
-        for left in range(rect[0]+1,min(self.imgw-1,rect[2]+self.max_dist)):
+
+        max_dist =  int((rect[3] - rect[1] ) * 1.5)
+        max_dist = min(max_dist , self.max_dist)    
+        for left in range(rect[0]+1,min(self.imgw-1,rect[2]+max_dist)):
             for idx in self.r_index[left]:
                 if(self.meet_v_iou(index,idx) > self.threshold_overlap_v):
                     return idx 
@@ -245,7 +239,6 @@ class text_porposcal:
         return [x1,y1,x2,y2]
 
 
-
     def get_text_line(self):
         for idx ,_ in enumerate(self.rects):
             sucession = self.get_sucession(idx)
@@ -255,6 +248,7 @@ class text_porposcal:
         sub_graphs = self.sub_graphs_connected()
 
         #独立未合并的框
+        #to do 这一步会导致 有些在文本行内部的小框，待优化
         set_element = set([y for x in sub_graphs for y in x])
         for idx,_ in enumerate(self.rects):
             if(idx not in set_element):
@@ -265,7 +259,6 @@ class text_porposcal:
             tb = self.rects[list(sub_graph)]
             tb = self.fit_line(tb)
             text_boxes.append(tb)
-
 
         return np.array(text_boxes)
 

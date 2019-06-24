@@ -26,12 +26,9 @@ class resize_image(keras.layers.Layer):
 
 
 def conv_bn_relu(input_tensor,filters , kernel_size = 3 ,bn = True ,
-                relu= True , isTraining = True,weight_decay=1e-6):
+                relu= True,weight_decay=1e-6):
     '''
     conv2d + bn + relu
-    notice : 
-        isTraining : if finetune model should set False
-        ? wether add l2 regularizer?
     '''
     x = Conv2D(filters,kernel_size,strides=(1,1),
                padding='same',kernel_regularizer=regularizers.l2(weight_decay))(input_tensor)

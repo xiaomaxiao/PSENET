@@ -1,5 +1,6 @@
 import threading
 import numpy as np 
+from scipy.spatial import distance 
 import csv
 import os
 import shutil
@@ -141,6 +142,59 @@ def fit_minarearectange(num_label,labelImage):
         rects.append(rect)
     return rects
 
+def fit_minarearectange_cpp(num_label,labelimage):
+    rects = [] 
+    angles = [] 
+    areas  = [] 
+    points = find_label_coord(labelimage,num_label)
+    for i in range(num_label):
+        pt = np.array(points[i]).reshape(-1,2)
+        rect = cv2.minAreaRect(pt)
+        angle = rect[2]
+        rect = cv2.boxPoints(rect)
+        rect = np.int0(rect)
+        # area = cv2.contourArea(rect)
+        # areas.append(area)
+        # angles.append(angle)
+        rects.append(rect)
+    
+    # #用area排序 升序
+    # sort = np.argsort(areas)
+    # sort = sort[-10:]
+    # print(sort)
+    # angles = np.array(angles)[sort]
+
+    # return rects,angles
+    return rects 
+
+
+
+def order_points(pts):
+    #https://www.pyimagesearch.com/2016/03/21/ordering-coordinates-clockwise-with-python-and-opencv/
+    #sort the points base on their x-coordinates
+    xSorted = pts[np.argsort(pts[:,0]),:]
+
+    #grab the left-most and right-most points from the sorted x-croodinate points
+    leftMost = xSorted[:2,:]
+    rightMost = xSorted[2:,:]
+
+    #now, sort the left-most coordinates according to their
+    #y-coordinates so we can grab the top-left and bottom-left points,respectively
+    leftMost = leftMost[np.argsort(leftMost[:,1]),:]
+    (tl,bl) = leftMost
+
+    #now that we have the top-left coordinate,use it as an anchor to calculate
+    #the Euclidean distance between the top-left and right-most points,by the 
+    #Pythagorean theorem , the point with the largest distance will be out 
+    #bottom-right point
+    D  = distance.cdist(tl[np.newaxis],rightMost,'euclidean')[0]
+    (br,tr) = rightMost[np.argsort(D)[::-1],:]
+
+    #return the coordinates in top-left , top-right,
+    #bottom-right , and bottom -left order
+    return np.array([tl,tr,br,bl],dtype='int32')
+
+
 
 def save_MTWI_2108_resault(filename,rects,scalex=1.0,scaley=1.0):
     with open(filename,'w',encoding='utf-8') as f:
@@ -155,22 +209,11 @@ def fit_boundingRect(num_label,labelImage):
     rects= []
     for label in range(1,num_label+1):
         points = np.array(np.where(labelImage == label)[::-1]).T
-        #rect = cv2.minAreaRect(points)
-        #rect = cv2.boxPoints(rect)
-        #rect = np.int0(rect)
         x,y,w,h = cv2.boundingRect(points)
         rect = np.array([[x,y],[x+w,y],[x+w,y+h],[x,y+h]])
         rects.append(rect)
     return rects
 
-def fit_boundingRect_2(num_label,labelImage):
-    rects= []
-    for label in range(1,num_label+1):
-        points = np.array(np.where(labelImage == label)[::-1]).T
-        x,y,w,h = cv2.boundingRect(points)
-        rect = np.array([x,y,x+w,y+h])
-        rects.append(rect)
-    return rects
 
 def fit_boundingRect_cpp(num_label,labelimage):
     rects = [] 
@@ -196,7 +239,7 @@ class text_porposcal:
 
     def get_sucession(self,index):
         rect = self.rects[index]
-
+        #以高度作为搜索长度
         max_dist =  int((rect[3] - rect[1] ) * 1.5)
         max_dist = min(max_dist , self.max_dist)    
         for left in range(rect[0]+1,min(self.imgw-1,rect[2]+max_dist)):
@@ -236,7 +279,7 @@ class text_porposcal:
         y1 = np.min(text_boxes[:,1])
         x2 = np.max(text_boxes[:,2])
         y2 = np.max(text_boxes[:,3])
-        return [x1,y1,x2,y2]
+        return [x1,y1,x2,y1,x2,y2,x1,y2]
 
 
     def get_text_line(self):

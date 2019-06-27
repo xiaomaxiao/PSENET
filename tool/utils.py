@@ -1,11 +1,11 @@
 import threading
 import numpy as np 
-from scipy.spatial import distance 
 import csv
 import os
 import shutil
 import cv2
 import glob
+from collections import Counter
 from copy import deepcopy
 from numba import jit
 from tool.pse import find_label_coord,ufunc_4_cpp
@@ -144,56 +144,77 @@ def fit_minarearectange(num_label,labelImage):
 
 def fit_minarearectange_cpp(num_label,labelimage):
     rects = [] 
-    angles = [] 
-    areas  = [] 
     points = find_label_coord(labelimage,num_label)
     for i in range(num_label):
         pt = np.array(points[i]).reshape(-1,2)
         rect = cv2.minAreaRect(pt)
-        angle = rect[2]
         rect = cv2.boxPoints(rect)
         rect = np.int0(rect)
-        # area = cv2.contourArea(rect)
-        # areas.append(area)
-        # angles.append(angle)
         rects.append(rect)
     
-    # #用area排序 升序
-    # sort = np.argsort(areas)
-    # sort = sort[-10:]
-    # print(sort)
-    # angles = np.array(angles)[sort]
-
-    # return rects,angles
     return rects 
 
 
 
 def order_points(pts):
     #https://www.pyimagesearch.com/2016/03/21/ordering-coordinates-clockwise-with-python-and-opencv/
-    #sort the points base on their x-coordinates
-    xSorted = pts[np.argsort(pts[:,0]),:]
+    rects = [] 
+    for pt in pts :
+        xSorted = pt[np.argsort(pt[:,0]),:]
+    
+        leftMost = xSorted[:2,:]
+        rightMost = xSorted[2:,:]
+    
+        leftMost = leftMost[np.argsort(leftMost[:,1]),:]
+        (tl,bl) = leftMost
 
-    #grab the left-most and right-most points from the sorted x-croodinate points
-    leftMost = xSorted[:2,:]
-    rightMost = xSorted[2:,:]
+        # D  = distance.cdist(tl[np.newaxis],rightMost,'euclidean')[0]
+        # (br,tr) = rightMost[np.argsort(D)[::-1],:]
+        rightMost = rightMost[np.argsort(rightMost[:,1]),:]
+        (tr,br) = rightMost
 
-    #now, sort the left-most coordinates according to their
-    #y-coordinates so we can grab the top-left and bottom-left points,respectively
-    leftMost = leftMost[np.argsort(leftMost[:,1]),:]
-    (tl,bl) = leftMost
+        rects.append(np.array([tl,tr,br,bl],dtype='int32'))
+    
+    return rects
 
-    #now that we have the top-left coordinate,use it as an anchor to calculate
-    #the Euclidean distance between the top-left and right-most points,by the 
-    #Pythagorean theorem , the point with the largest distance will be out 
-    #bottom-right point
-    D  = distance.cdist(tl[np.newaxis],rightMost,'euclidean')[0]
-    (br,tr) = rightMost[np.argsort(D)[::-1],:]
+def calc_vote_angle(bin_img):
+    '''
+    二值图进行骨架化处理后用houghline计算角度
+    设定不同累加阈值（图像宽度的[4-6]分之一）多次计算投票确定最终角度
+    '''
+    def cal_angle(thin_img,threshold):
+        lines = cv2.HoughLines(thin_img,1,np.pi/360,threshold)
+        if(lines is None):
+            return None
+        angles = []
+        for line in lines:
+            rho,theta = line[0]
+            ## 精度0.5
+            angles.append(theta * 180 / np.pi //0.5 * 0.5)
+        return Counter(angles).most_common(1)[0][0]
+    
+    thin_img = bin_img.astype(np.uint8)
+    thin_img_w = thin_img.shape[1]
+    thin_img = cv2.ximgproc.thinning(thin_img)
+    angles =[]
+    for ratio in [4,5,6]:
+        angle = cal_angle(np.copy(thin_img),thin_img_w//ratio)
+        if(angle == None):
+            continue
+        angles.append(angle)
 
-    #return the coordinates in top-left , top-right,
-    #bottom-right , and bottom -left order
-    return np.array([tl,tr,br,bl],dtype='int32')
+    most_angle  = Counter(angles).most_common(1)  
+    most_angle =  0 if len(most_angle)==0 else most_angle[0][0]
 
+    if(most_angle>0 and most_angle<=45):
+        most_angle = most_angle
+    elif(most_angle>45 and most_angle<=90):
+        most_angle = most_angle - 90
+    elif(most_angle>90 and most_angle<=135):
+        most_angle = most_angle - 90
+    elif(most_angle>135 and most_angle<180):
+        most_angle = 90 - most_angle
+    return most_angle
 
 
 def save_MTWI_2108_resault(filename,rects,scalex=1.0,scaley=1.0):
@@ -221,9 +242,19 @@ def fit_boundingRect_cpp(num_label,labelimage):
     for i in range(num_label):
         pt = np.array(points[i]).reshape(-1,2)
         x,y,w,h = cv2.boundingRect(pt)
-        rects.append(np.array([x,y,x+w,y+h]))
+        rects.append(np.array([[x,y],[x+w,y],[x+w,y+h],[x,y+h]]))
     return rects
 
+def fit_boundingRect_warp_cpp(num_label,labelimage,M):
+    rects = [] 
+    points = find_label_coord(labelimage,num_label)
+    for i in range(num_label):
+        pt = np.array(points[i]).reshape(1,-1,2)
+        pt = cv2.transform(pt,M)
+        x,y,w,h = cv2.boundingRect(pt)
+        pt = np.array([[x,y],[x+w,y],[x+w,y+h],[x,y+h]])
+        rects.append(pt)
+    return rects
 
 
 class text_porposcal:
@@ -235,14 +266,14 @@ class text_porposcal:
         self.graph = np.zeros((self.rects.shape[0],self.rects.shape[0]))
         self.r_index = [[] for _ in range(imgw)]
         for index , rect in enumerate(rects):
-            self.r_index[int(rect[0])].append(index)
+            self.r_index[int(rect[0][0])].append(index)
 
     def get_sucession(self,index):
         rect = self.rects[index]
         #以高度作为搜索长度
-        max_dist =  int((rect[3] - rect[1] ) * 1.5)
+        max_dist =  int((rect[3][1] - rect[0][1] ) * 1.5)
         max_dist = min(max_dist , self.max_dist)    
-        for left in range(rect[0]+1,min(self.imgw-1,rect[2]+max_dist)):
+        for left in range(rect[0][0]+1,min(self.imgw-1,rect[1][0]+max_dist)):
             for idx in self.r_index[left]:
                 if(self.meet_v_iou(index,idx) > self.threshold_overlap_v):
                     return idx 
@@ -252,10 +283,10 @@ class text_porposcal:
         '''
 
         '''
-        height1 = self.rects[index1][3] - self.rects[index1][1]
-        height2 = self.rects[index2][3] - self.rects[index2][1]
-        y0 = max(self.rects[index1][1],self.rects[index2][1])
-        y1 = min(self.rects[index1][3],self.rects[index2][3])
+        height1 = self.rects[index1][3][1] - self.rects[index1][0][1]
+        height2 = self.rects[index2][3][1] - self.rects[index2][0][1]
+        y0 = max(self.rects[index1][0][1],self.rects[index2][0][1])
+        y1 = min(self.rects[index1][3][1],self.rects[index2][3][1])
         
         overlap_v = max(0,y1- y0)/max(height1,height2)
         return overlap_v
@@ -271,15 +302,25 @@ class text_porposcal:
                     sub_graphs[-1].append(v)
         return sub_graphs
 
-    def fit_line(self,text_boxes):
+    def fit_box(self,text_boxes):
         '''
         先用所有text_boxes的最大外包点做，后期可以用线拟合试试
         '''
-        x1 = np.min(text_boxes[:,0])
-        y1 = np.min(text_boxes[:,1])
-        x2 = np.max(text_boxes[:,2])
-        y2 = np.max(text_boxes[:,3])
-        return [x1,y1,x2,y1,x2,y2,x1,y2]
+        x1 = np.min(text_boxes[:,0,0])
+        y1 = np.min(text_boxes[:,0,1])
+        x2 = np.max(text_boxes[:,2,0])
+        y2 = np.max(text_boxes[:,2,1])
+        return [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]
+
+        # # 所有框的最小外接矩形
+        # pt = np.array(text_boxes)
+        # pt = pt.reshape((-1,2))
+        # print(pt.shape)
+        # print(pt)
+        # rect = cv2.minAreaRect(pt)
+        # rect = cv2.boxPoints(rect)
+        # rect = np.int0(rect)
+        # return rect 
 
 
     def get_text_line(self):
@@ -300,7 +341,7 @@ class text_porposcal:
         text_boxes = []
         for sub_graph in sub_graphs:
             tb = self.rects[list(sub_graph)]
-            tb = self.fit_line(tb)
+            tb = self.fit_box(tb)
             text_boxes.append(tb)
 
         return np.array(text_boxes)

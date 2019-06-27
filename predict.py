@@ -8,10 +8,9 @@ import tensorflow as tf
 # os.environ["CUDA_VISIBLE_DEVICES"] = '7'
 sys.path.append(os.getcwd() + '/psenet')
 
-from utils import scale_expand_kernels ,fit_boundingRect_2
-from utils import text_porposcal , fit_boundingRect_cpp
+from utils import scale_expand_kernels ,text_porposcal , fit_boundingRect_cpp ,fit_minarearectange_cpp
 
-def predict(images):
+def predict(images,angle = False):
     a = time.time()
     MIN_LEN = 32
     MAX_LEN = 1500
@@ -58,10 +57,14 @@ def predict(images):
     newres1.append((res1[:,:,5]*255).astype('int32'))
 
     num_label,labelimage = scale_expand_kernels(newres1,filter=False)
-    rects = fit_boundingRect_cpp(num_label-1,labelimage)
 
-    g = text_porposcal(rects,res1.shape[1],max_dist=20,threshold_overlap_v=0.5)
-    rects = g.get_text_line()
+    if(angle == False):
+        rects = fit_boundingRect_cpp(num_label-1,labelimage)
+        g = text_porposcal(rects,res1.shape[1],max_dist=20,threshold_overlap_v=0.5)
+        rects = g.get_text_line()
+    else:
+        rects = fit_minarearectange_cpp(num_label-1,labelimage)
+
     c = time.time()
     print('pse的连接部分耗时：', str(c-b))
     results = []
@@ -70,7 +73,11 @@ def predict(images):
         rt[1] = rt[1] * 2 * scaley
         rt[2] = rt[2] * 2 * scalex 
         rt[3] = rt[3] * 2 * scaley
-        results.append([rt[0], rt[1], rt[2], rt[1], rt[0], rt[3], rt[2], rt[3]])
+        rt[4] = rt[4] * 2 * scalex
+        rt[5] = rt[5] * 2 * scaley
+        rt[6] = rt[6] * 2 * scalex
+        rt[7] = rt[7] * 2 * scaley
+        results.append(rt)
     return results
 
 def draw_boxes(img, boxes):

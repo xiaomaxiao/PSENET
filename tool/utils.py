@@ -207,13 +207,13 @@ def calc_vote_angle(bin_img):
     most_angle =  0 if len(most_angle)==0 else most_angle[0][0]
 
     if(most_angle>0 and most_angle<=45):
-        most_angle = most_angle
+        most_angle = most_angle + 90 
     elif(most_angle>45 and most_angle<=90):
         most_angle = most_angle - 90
     elif(most_angle>90 and most_angle<=135):
         most_angle = most_angle - 90
     elif(most_angle>135 and most_angle<180):
-        most_angle = 90 - most_angle
+        most_angle = most_angle - 90
     return most_angle
 
 
@@ -258,22 +258,43 @@ def fit_boundingRect_warp_cpp(num_label,labelimage,M):
 
 
 class text_porposcal:
-    def __init__(self,rects,imgw,max_dist =50 , threshold_overlap_v = 0.5):
+    def __init__(self,rects,max_dist = 50 , threshold_overlap_v = 0.5):
         self.rects = np.array(rects) 
-        self.imgw = imgw
+        #offset
+        rects , max_w , offset = self.offset_coordinate(self.rects)
+        self.rects = rects
+        self.max_w = max_w
+        self.offset = offset
+
         self.max_dist = max_dist 
         self.threshold_overlap_v = threshold_overlap_v
         self.graph = np.zeros((self.rects.shape[0],self.rects.shape[0]))
-        self.r_index = [[] for _ in range(imgw)]
+        self.r_index = [[] for _ in range(self.max_w)]
         for index , rect in enumerate(rects):
             self.r_index[int(rect[0][0])].append(index)
+
+    def offset_coordinate(self,rects):
+        '''
+        经过旋转的坐标有时候被扭到了负数，你敢信？
+        所以我们要算出最大的负坐标，然后上这个offset,在完成textline以后再减回去
+        '''
+        if(rects.shape[0] == 0 ):
+            return rects , 0 , 0 
+
+        offset = rects.min()
+        max_w = rects[:,:,0].max() + 1 
+        offset = - offset if offset < 0 else 0
+        rects = rects + offset
+        max_w = max_w + offset
+        return rects , max_w , offset
+
 
     def get_sucession(self,index):
         rect = self.rects[index]
         #以高度作为搜索长度
         max_dist =  int((rect[3][1] - rect[0][1] ) * 1.5)
         max_dist = min(max_dist , self.max_dist)    
-        for left in range(rect[0][0]+1,min(self.imgw-1,rect[1][0]+max_dist)):
+        for left in range(rect[0][0]+1,min(self.max_w-1,rect[1][0]+max_dist)):
             for idx in self.r_index[left]:
                 if(self.meet_v_iou(index,idx) > self.threshold_overlap_v):
                     return idx 
@@ -302,7 +323,7 @@ class text_porposcal:
                     sub_graphs[-1].append(v)
         return sub_graphs
 
-    def fit_box(self,text_boxes):
+    def fit_box_2(self,text_boxes):
         '''
         先用所有text_boxes的最大外包点做，后期可以用线拟合试试
         '''
@@ -311,6 +332,17 @@ class text_porposcal:
         x2 = np.max(text_boxes[:,2,0])
         y2 = np.max(text_boxes[:,2,1])
         return [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]
+
+    def fit_box(self,text_boxes):
+        x1 = np.min(text_boxes[:,0,0])
+        y1 = np.mean(text_boxes[:,0,1])
+        x2 = np.max(text_boxes[:,2,0])
+        y2 = np.mean(text_boxes[:,2,1])
+        return [[x1,y1],[x2,y1],[x2,y2],[x1,y2]]
+
+
+
+
 
         # # 所有框的最小外接矩形
         # pt = np.array(text_boxes)
@@ -344,5 +376,8 @@ class text_porposcal:
             tb = self.fit_box(tb)
             text_boxes.append(tb)
 
-        return np.array(text_boxes)
+        text_boxes = np.array(text_boxes)
+        # inv offset
+        text_boxes = text_boxes - self.offset
+        return text_boxes
 

@@ -6,9 +6,10 @@ import numpy as np
 import tensorflow as tf 
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '7'
-sys.path.append(os.getcwd() + '/psenet')
+#sys.path.append(os.getcwd() + '/psenet')
 
 from utils import scale_expand_kernels ,text_porposcal , fit_boundingRect_cpp ,fit_minarearectange_cpp
+from utils import calc_vote_angle , fit_boundingRect_warp_cpp
 
 def predict(images,angle = False):
     a = time.time()
@@ -63,7 +64,21 @@ def predict(images,angle = False):
         g = text_porposcal(rects,res1.shape[1],max_dist=20,threshold_overlap_v=0.5)
         rects = g.get_text_line()
     else:
-        rects = fit_minarearectange_cpp(num_label-1,labelimage)
+        #计算角度
+        angle = calc_vote_angle(newres1[-1])
+        h,w = labelimage.shape[0:2]
+        M = cv2.getRotationMatrix2D((w/2,h/2),angle,1.0)
+        neg_M = cv2.getRotationMatrix2D((w/2,h/2),-angle,1.0)
+
+        rects = fit_boundingRect_warp_cpp(num_label-1,labelimage,M)
+        g = text_porposcal(rects,res1.shape[1],max_dist=20,threshold_overlap_v=0.5)
+        rects = g.get_text_line()
+        rects = np.array(rects)
+        if(rects.shape[0]>0):
+            rects = cv2.transform(np.array(rects),neg_M)
+
+    if(rects.shape[0]>0):
+        rects = rects.reshape(-1,8)
 
     c = time.time()
     print('pse的连接部分耗时：', str(c-b))
